@@ -96,6 +96,7 @@ static const char *progname;    /* program name for error messages */
 static char *icc_filename;      /* for -icc switch */
 JDIMENSION max_scans;           /* for -maxscans switch */
 static char *outfilename;       /* for -outfile switch */
+boolean customsrc;              /* for -customsrc switch */
 boolean memsrc;                 /* for -memsrc switch */
 boolean report;                 /* for -report switch */
 boolean skip, crop;
@@ -103,6 +104,11 @@ JDIMENSION skip_start, skip_end;
 JDIMENSION crop_x, crop_y, crop_width, crop_height;
 boolean strict;                 /* for -strict switch */
 #define INPUT_BUF_SIZE  4096
+
+
+static size_t custom_read(void *custom_stuff, unsigned char *buffer, size_t size) {
+  return fread(buffer, 1, size, (FILE*) custom_stuff);
+}
 
 
 LOCAL(void)
@@ -174,6 +180,7 @@ usage(void)
   fprintf(stderr, "  -maxmemory N   Maximum memory to use (in kbytes)\n");
   fprintf(stderr, "  -maxscans N    Maximum number of scans to allow in input file\n");
   fprintf(stderr, "  -outfile name  Specify name for output file\n");
+  fprintf(stderr, "  -customsrc     Load input file with custom function\n");
 #if JPEG_LIB_VERSION >= 80 || defined(MEM_SRCDST_SUPPORTED)
   fprintf(stderr, "  -memsrc        Load input file into memory before decompressing\n");
 #endif
@@ -208,6 +215,7 @@ parse_switches(j_decompress_ptr cinfo, int argc, char **argv,
   icc_filename = NULL;
   max_scans = 0;
   outfilename = NULL;
+  customsrc = FALSE;
   memsrc = FALSE;
   report = FALSE;
   skip = FALSE;
@@ -384,6 +392,10 @@ parse_switches(j_decompress_ptr cinfo, int argc, char **argv,
       if (++argn >= argc)       /* advance to next argument */
         usage();
       outfilename = argv[argn]; /* save it away for later use */
+
+    } else if (keymatch(arg, "customsrc", 9)) {
+      /* Use custom source manager */
+      customsrc = TRUE;
 
     } else if (keymatch(arg, "memsrc", 2)) {
       /* Use in-memory source manager */
@@ -665,6 +677,10 @@ main(int argc, char **argv)
     jpeg_mem_src(&cinfo, inbuffer, insize);
   } else
 #endif
+  if (customsrc) {
+    jpeg_custom_src(&cinfo, &custom_read, input_file);
+  }
+  else
     jpeg_stdio_src(&cinfo, input_file);
 
   /* Read file header, set default decompression parameters */
