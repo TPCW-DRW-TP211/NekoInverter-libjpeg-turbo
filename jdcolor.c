@@ -741,6 +741,8 @@ static INLINE boolean is_big_endian(void)
 #define gray_rgb565D_convert_internal  gray_rgb565D_convert_le
 #define cmyk_rgb565_convert_internal  cmyk_rgb565_convert_le
 #define cmyk_rgb565D_convert_internal  cmyk_rgb565D_convert_le
+#define ycck_rgb565_convert_internal  ycck_rgb565_convert_le
+#define ycck_rgb565D_convert_internal  ycck_rgb565D_convert_le
 #include "jdcol565.c"
 #undef PACK_SHORT_565
 #undef PACK_TWO_PIXELS
@@ -752,6 +754,8 @@ static INLINE boolean is_big_endian(void)
 #undef gray_rgb565D_convert_internal
 #undef cmyk_rgb565_convert_internal
 #undef cmyk_rgb565D_convert_internal
+#undef ycck_rgb565_convert_internal
+#undef ycck_rgb565D_convert_internal
 
 #define PACK_SHORT_565  PACK_SHORT_565_BE
 #define PACK_TWO_PIXELS  PACK_TWO_PIXELS_BE
@@ -763,6 +767,8 @@ static INLINE boolean is_big_endian(void)
 #define gray_rgb565D_convert_internal  gray_rgb565D_convert_be
 #define cmyk_rgb565_convert_internal  cmyk_rgb565_convert_be
 #define cmyk_rgb565D_convert_internal  cmyk_rgb565D_convert_be
+#define ycck_rgb565_convert_internal  ycck_rgb565_convert_be
+#define ycck_rgb565D_convert_internal  ycck_rgb565D_convert_be
 #include "jdcol565.c"
 #undef PACK_SHORT_565
 #undef PACK_TWO_PIXELS
@@ -774,6 +780,8 @@ static INLINE boolean is_big_endian(void)
 #undef gray_rgb565D_convert_internal
 #undef cmyk_rgb565_convert_internal
 #undef cmyk_rgb565D_convert_internal
+#undef ycck_rgb565_convert_internal
+#undef ycck_rgb565D_convert_internal
 
 
 METHODDEF(void)
@@ -863,6 +871,30 @@ cmyk_rgb565D_convert (j_decompress_ptr cinfo,
     cmyk_rgb565D_convert_be(cinfo, input_buf, input_row, output_buf, num_rows);
   else
     cmyk_rgb565D_convert_le(cinfo, input_buf, input_row, output_buf, num_rows);
+}
+
+
+METHODDEF(void)
+ycck_rgb565_convert (j_decompress_ptr cinfo,
+                     JSAMPIMAGE input_buf, JDIMENSION input_row,
+                     JSAMPARRAY output_buf, int num_rows)
+{
+  if (is_big_endian())
+    ycck_rgb565_convert_be(cinfo, input_buf, input_row, output_buf, num_rows);
+  else
+    ycck_rgb565_convert_le(cinfo, input_buf, input_row, output_buf, num_rows);
+}
+
+
+METHODDEF(void)
+ycck_rgb565D_convert (j_decompress_ptr cinfo,
+                      JSAMPIMAGE input_buf, JDIMENSION input_row,
+                      JSAMPARRAY output_buf, int num_rows)
+{
+  if (is_big_endian())
+    ycck_rgb565D_convert_be(cinfo, input_buf, input_row, output_buf, num_rows);
+  else
+    ycck_rgb565D_convert_le(cinfo, input_buf, input_row, output_buf, num_rows);
 }
 
 
@@ -993,6 +1025,9 @@ jinit_color_deconverter(j_decompress_ptr cinfo)
         cconvert->pub.color_convert = rgb_rgb565_convert;
       } else if (cinfo->jpeg_color_space == JCS_CMYK) {
         cconvert->pub.color_convert = cmyk_rgb565_convert;
+      } else if (cinfo->jpeg_color_space == JCS_YCCK) {
+        cconvert->pub.color_convert = ycck_rgb565_convert;
+        build_ycc_rgb_table(cinfo);
       } else
         ERREXIT(cinfo, JERR_CONVERSION_NOTIMPL);
     } else {
@@ -1006,6 +1041,9 @@ jinit_color_deconverter(j_decompress_ptr cinfo)
         cconvert->pub.color_convert = rgb_rgb565D_convert;
       } else if (cinfo->jpeg_color_space == JCS_CMYK) {
         cconvert->pub.color_convert = cmyk_rgb565D_convert;
+      } else if (cinfo->jpeg_color_space == JCS_YCCK) {
+        cconvert->pub.color_convert = ycck_rgb565D_convert;
+        build_ycc_rgb_table(cinfo);
       } else
         ERREXIT(cinfo, JERR_CONVERSION_NOTIMPL);
     }
